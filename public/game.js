@@ -5,6 +5,8 @@ let gameCanvas, gameCtx, gameRoom=null, gameFrame=0, gameAnimId=null;
 let myVoteTarget=null, particleList=[];
 let _lastStatus=null, _lastTurn=null, _lastClueCount=0;
 let _timerTick=null, _lastWarnSec=null;
+// These are set each time a room:update arrives with timerRemaining
+let _timerSnapshot=null;   // { remaining, at } — remaining secs at timestamp 'at'
 
 // ─────────────────────────────────────────
 //  CLIENT-SIDE TIMER TICK
@@ -15,11 +17,13 @@ let _timerTick=null, _lastWarnSec=null;
 function startTimerTick(){
   stopTimerTick();
   _timerTick = setInterval(()=>{
-    if(!gameRoom || gameRoom.status!=='playing' || !gameRoom.timerStart) return;
-    const elapsed   = (Date.now() - gameRoom.timerStart) / 1000;
-    const remaining = Math.max(0, gameRoom.settings.timerSeconds - elapsed);
-    const pct       = Math.min(100, (remaining / gameRoom.settings.timerSeconds) * 100);
-    const hot       = remaining < gameRoom.settings.timerSeconds * 0.3;
+    if(!gameRoom || gameRoom.status!=='playing' || !_timerSnapshot) return;
+    // Count down from last server snapshot using local clock — no clock skew
+    const elapsed   = (Date.now() - _timerSnapshot.at) / 1000;
+    const remaining = Math.max(0, _timerSnapshot.remaining - elapsed);
+    const total     = gameRoom.settings.timerSeconds;
+    const pct       = Math.min(100, (remaining / total) * 100);
+    const hot       = remaining < total * 0.3;
     const secs      = Math.ceil(remaining);
     // Update text
     const timeEl = document.getElementById('tc-time');
@@ -79,6 +83,12 @@ function renderGameState(room){
   if(newClues) SFX.clueIn();
 
   _lastStatus=room.status; _lastTurn=room.currentTurn; _lastClueCount=room.clues.length;
+  // Save timer snapshot using local clock to avoid server/client clock skew
+  if(room.status==='playing' && room.timerRemaining!=null){
+    _timerSnapshot = { remaining: room.timerRemaining, at: Date.now() };
+  } else if(room.status!=='playing'){
+    _timerSnapshot = null;
+  }
 
   if(room.status!=='playing') stopTimerTick();
   switch(room.status){
@@ -251,8 +261,8 @@ function renderPlaying(room){
   const isMyTurn=room.currentTurn===App.playerId;
   const turnP=room.players.find(p=>p.id===room.currentTurn);
   const alive=room.players.filter(p=>!p.isEliminated);
-  const elapsed=room.timerStart?(Date.now()-room.timerStart)/1000:0;
-  const remaining=Math.max(0,room.settings.timerSeconds-elapsed);
+  // Use timerRemaining from server snapshot to avoid clock skew
+  const remaining=room.timerRemaining!=null ? room.timerRemaining : room.settings.timerSeconds;
   const pct=Math.min(100,(remaining/room.settings.timerSeconds)*100);
   const hot=remaining<room.settings.timerSeconds*.3;
 

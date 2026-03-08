@@ -201,6 +201,9 @@ function buildState(room, pid) {
   const s = {
     id:room.id, hostId:room.hostId, settings:room.settings,
     status:room.status, round:room.round, timerStart:room.timerStart,
+    timerRemaining: (room.status==='playing' && room.timerStart)
+      ? Math.max(0, room.settings.timerSeconds - (Date.now()-room.timerStart)/1000)
+      : null,
     currentTurn:room.currentTurn, wantVote:room.wantVote,
     wantVoteCount:room.wantVote.length,
     voteThreshold:Math.floor(alive.length/2)+1,
