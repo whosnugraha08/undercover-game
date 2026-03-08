@@ -267,8 +267,20 @@ function renderPlaying(room){
   const hot=remaining<room.settings.timerSeconds*.3;
 
   let wordHtml='';
-  if(room.myRole==='mrwhite') wordHtml=`<div class="my-word-card"><div class="mwc-lbl">KATAMU</div><div class="mwc-word">???</div>${roleBadge('mrwhite')}<div style="font-size:.7rem;color:var(--muted);margin-top:5px">Bluff!</div></div>`;
-  else if(room.myRole) wordHtml=`<div class="my-word-card"><div class="mwc-lbl">KATAMU</div><div class="mwc-word">${escHtml(room.myWord||'')}</div>${roleBadge(room.myRole)}</div>`;
+  if(room.myRole==='mrwhite'){
+    // Mr. White knows because they have no word
+    wordHtml=`<div class="my-word-card"><div class="mwc-lbl">KATAMU</div>
+      <div class="mwc-word">???</div>
+      ${roleBadge('mrwhite')}
+      <div style="font-size:.7rem;color:var(--muted);margin-top:6px">Kamu tidak punya kata — bluff!</div>
+    </div>`;
+  } else if(room.myWord){
+    // Civilian or Undercover — show word only, NO role badge (they don't know which one)
+    wordHtml=`<div class="my-word-card"><div class="mwc-lbl">KATAMU</div>
+      <div class="mwc-word">${escHtml(room.myWord)}</div>
+      <div style="font-size:.65rem;color:var(--muted);margin-top:6px;font-family:'Press Start 2P',monospace">kamu tidak tahu role-mu 🤫</div>
+    </div>`;
+  }
 
   let logHtml='',lastRnd=0;
   for(const cl of room.clues){
@@ -342,7 +354,7 @@ function renderVoting(room){
   const total=Object.keys(room.votes||{}).length;
   let wordRemind='';
   if(room.myRole==='mrwhite') wordRemind='<div class="info-box">Kamu Mr. White — coba bertahan!</div>';
-  else if(room.myRole) wordRemind=`<div class="info-box">Katamu: <strong>${escHtml(room.myWord||'???')}</strong></div>`;
+  else if(room.myWord) wordRemind=`<div class="info-box">Katamu: <strong>${escHtml(room.myWord)}</strong> — kamu tidak tahu role-mu 🤫</div>`;
   const opts=alive.map(p=>{
     const isMe=p.id===App.playerId;
     const isSel=myVoteTarget===p.id||(hasVoted&&room.votes?.[App.playerId]===p.id);

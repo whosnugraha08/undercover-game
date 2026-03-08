@@ -218,9 +218,13 @@ function buildState(room, pid) {
     })),
   };
   if (pid && room.roles[pid]) {
-    s.myRole = room.roles[pid];
-    s.myWord = room.roles[pid]==='civilian'   ? room.words.civilian
-             : room.roles[pid]==='undercover' ? room.words.undercover : null;
+    const role = room.roles[pid];
+    // Mr. White knows their role (no word = obvious tell)
+    // Civilian & Undercover do NOT know their own role — only see their word
+    s.myRole = role === 'mrwhite' ? 'mrwhite' : null;
+    s.myWord = role === 'civilian'   ? room.words.civilian
+             : role === 'undercover' ? room.words.undercover : null;
+    s._hasWord = role !== 'mrwhite';
   }
   if (room.status==='reveal'||room.status==='finished') {
     s.allRoles = room.roles; s.allWords = room.words;
